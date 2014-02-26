@@ -29,6 +29,7 @@
 #include <vtkCommand.h>
 #include <vtkTransform.h>
 #include <vtkProperty.h>
+#include <vtkSelectEnclosedPoints.h>
 
 
 class vtkMyCallback : public vtkCommand
@@ -75,7 +76,7 @@ int main(int argc, char*argv[])
   reader->SetDataScalarTypeToUnsignedShort();
   reader->SetDataByteOrderToLittleEndian();
   reader->UpdateWholeExtent();
-  reader->SetDataSpacing(0.053750, 0.053750, 10*(6.12/17)/0.053750);
+  reader->SetDataSpacing(0.053750, 0.053750, 10*(6.12/17)/0.133);
   double x,y,z;
   reader->GetDataSpacing(x,y,z);
   cout << "maxX:" << x << " maxY:" << y << " maxZ:" << z << endl;
@@ -171,7 +172,6 @@ int main(int argc, char*argv[])
   //actor->GetProperty()->SetOpacity(0.8);
   actor->GetProperty()->SetColor(1,1,1);
   actor->GetProperty()->SetRepresentationToWireframe();
-  reader->SetDataSpacing(0.053750, 0.053750, 10*(6.12/17)/0.053750);
   cout << "maxX:" << volume->GetMaxXBound() << " maxY:" << volume->GetMaxYBound() << " maxZ:" << volume->GetMaxZBound() << endl;
 
 
@@ -234,14 +234,47 @@ int main(int argc, char*argv[])
 
   iren->Start();
 
+  vtkLinearTransform* t_out;
+  t_out = boxWidget->GetProp3D()->GetUserTransform();
+  vtkAbstractTransform* inverseTransform = t_out->GetInverse();
+  inverseTransform->Print(cout);
+  t_out->Print(cout);
+  vtkSmartPointer<vtkSelectEnclosedPoints> enclosedPts = vtkSmartPointer<vtkSelectEnclosedPoints>::New();
+  //enclosedPts->SetSurface(funcSource->GetOutput());
+  //enclosedPts->Update();
+  enclosedPts->Initialize(funcSource->GetOutput());
+  cout <<" 000:" << enclosedPts->IsInsideSurface(0,0.5,0) << endl;
+  double posInCoord[3] = {0.0,0.5,0};
+  double posTransCoord[3];
+  t_out->TransformPoint(posInCoord,posTransCoord);
+  cout << "transformed:" << posTransCoord[0] << " " << posTransCoord[1] <<  " " << posTransCoord[2] << endl;
   double sum = 0;
+  int numPts = 0;
   for(int z = 0; z < 18; z++)
       for(int y = 0; y < 28; y++)
           for(int x = 0; x < 22; x++)
           {
-              unsigned short* ptr = static_cast<unsigned short*>(reader->GetOutput()->GetScalarPointer(x,y,z));
-              sum += *ptr;
+              double posViewerCoord[3] = {10*x, 10*y,z*10*(6.12/17)/0.133};
+              double xViewer = posViewerCoord[0];
+              double yViewer = posViewerCoord[1];
+              double zViewer = posViewerCoord[2];
+              double posTorusCoord[3];
+              inverseTransform->TransformPoint(posViewerCoord,posTorusCoord);
+              double xTorus = posTorusCoord[0];
+              double yTorus = posTorusCoord[1];
+              double zTorus = posTorusCoord[2];
+              if(x == 11 && y == 14 && z == 9)
+              {
+                  cout << "xViewer: " << xViewer << " yViewer: " << yViewer << " zViewer: " << zViewer << endl;
+                  cout << "xTorus: " << xTorus << " yTorus" << yTorus << " zTorus" << zTorus << endl;
+              }
+              if(enclosedPts->IsInsideSurface(xTorus,yTorus,zTorus))
+              {
+                  unsigned short* ptr = static_cast<unsigned short*>(reader->GetOutput()->GetScalarPointer(x,y,z));
+                  sum += *ptr;
+                  numPts++;
+              }
           }
-    cout << " sum pixels: " << sum << endl;
+    cout << " sum pixels: " << sum << " numPts: " << numPts << endl;
   return EXIT_SUCCESS;
 }
