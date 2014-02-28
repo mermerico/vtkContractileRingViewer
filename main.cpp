@@ -78,11 +78,7 @@ int main(int argc, char*argv[])
   reader->UpdateWholeExtent();
   reader->SetDataSpacing(0.053750, 0.053750, 10*(6.12/17)/0.133);
   double x,y,z;
-  reader->GetDataSpacing(x,y,z);
-  cout << "maxX:" << x << " maxY:" << y << " maxZ:" << z << endl;
   reader->Update();
-  reader->GetDataSpacing(x,y,z);
-  cout << "maxX:" << x << " maxY:" << y << " maxZ:" << z << endl;
 
   vtkSmartPointer<vtkParametricTorus> torus =
     vtkSmartPointer<vtkParametricTorus>::New();
@@ -136,12 +132,7 @@ int main(int argc, char*argv[])
   vtkSmartPointer<vtkSmartVolumeMapper> volumeMapper =
     vtkSmartPointer<vtkSmartVolumeMapper>::New();
   volumeMapper->SetInputConnection(reader->GetOutputPort());
-  //volumeMapper->Update();
-  double bounds[6];
-  /*volumeMapper->GetBounds(bounds);
-  for(int i = 0; i < 6; i++)
-      cout << bounds[i] << " ";
-  cout << endl;*/
+  volumeMapper->Update();
 
   // The volume holds the mapper and the property and can be used to
   // position/orient the volume.
@@ -149,15 +140,6 @@ int main(int argc, char*argv[])
     vtkSmartPointer<vtkVolume>::New();
   volume->SetMapper(volumeMapper);
   volume->SetProperty(volumeProperty);
-  reader->GetDataSpacing(x,y,z);
-  cout << "maxX:" << x << " maxY:" << y << " maxZ:" << z << endl;
-  cout << "maxX:" << volume->GetMaxXBound() << " maxY:" << volume->GetMaxYBound() << " maxZ:" << volume->GetMaxZBound() << endl;
-
-  // Contour the second dataset.
-  /*vtkSmartPointer<vtkContourFilter> contour =
-    vtkSmartPointer<vtkContourFilter>::New();
-  contour->SetValue(0, 80);
-  contour->SetInputConnection(reader2->GetOutputPort());*/
 
   // Create a mapper for the polygonal data.
   vtkSmartPointer<vtkPolyDataMapper> mapper =
@@ -169,10 +151,8 @@ int main(int argc, char*argv[])
   vtkSmartPointer<vtkActor> actor =
     vtkSmartPointer<vtkActor>::New();
   actor->SetMapper(mapper);
-  //actor->GetProperty()->SetOpacity(0.8);
   actor->GetProperty()->SetColor(1,1,1);
   actor->GetProperty()->SetRepresentationToWireframe();
-  cout << "maxX:" << volume->GetMaxXBound() << " maxY:" << volume->GetMaxYBound() << " maxZ:" << volume->GetMaxZBound() << endl;
 
 
 
@@ -237,17 +217,11 @@ int main(int argc, char*argv[])
   vtkLinearTransform* t_out;
   t_out = boxWidget->GetProp3D()->GetUserTransform();
   vtkAbstractTransform* inverseTransform = t_out->GetInverse();
-  inverseTransform->Print(cout);
-  t_out->Print(cout);
   vtkSmartPointer<vtkSelectEnclosedPoints> enclosedPts = vtkSmartPointer<vtkSelectEnclosedPoints>::New();
-  //enclosedPts->SetSurface(funcSource->GetOutput());
-  //enclosedPts->Update();
   enclosedPts->Initialize(funcSource->GetOutput());
-  cout <<" 000:" << enclosedPts->IsInsideSurface(0,0.5,0) << endl;
   double posInCoord[3] = {0.0,0.5,0};
   double posTransCoord[3];
   t_out->TransformPoint(posInCoord,posTransCoord);
-  cout << "transformed:" << posTransCoord[0] << " " << posTransCoord[1] <<  " " << posTransCoord[2] << endl;
   double sum = 0;
   int numPts = 0;
   for(int z = 0; z < 18; z++)
@@ -263,11 +237,6 @@ int main(int argc, char*argv[])
               double xTorus = posTorusCoord[0];
               double yTorus = posTorusCoord[1];
               double zTorus = posTorusCoord[2];
-              if(x == 11 && y == 14 && z == 9)
-              {
-                  cout << "xViewer: " << xViewer << " yViewer: " << yViewer << " zViewer: " << zViewer << endl;
-                  cout << "xTorus: " << xTorus << " yTorus" << yTorus << " zTorus" << zTorus << endl;
-              }
               if(enclosedPts->IsInsideSurface(xTorus,yTorus,zTorus))
               {
                   unsigned short* ptr = static_cast<unsigned short*>(reader->GetOutput()->GetScalarPointer(x,y,z));
